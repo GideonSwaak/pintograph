@@ -2,7 +2,7 @@
 	"include": ["lib"],
 	"compilerOptions": {
 		"target": "ES2015",
-		"module": "CommonJS",
+		"module": "ES6",
 		"moduleResolution": "node",
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,

@@ -8,12 +8,10 @@ module.exports = {
 	output: {
 		path: path.resolve(__dirname, 'dist'),
 		filename: 'index.js',
-		library: {
-			root: 'Pintograph',
-			amd: 'pintograph',
-			commonjs: ''
-		},
-		libraryTarget: 'umd'
+		libraryTarget: 'module'
+	},
+	experiments: {
+		outputModule: true
 	},
 	module: {
 		rules: [
