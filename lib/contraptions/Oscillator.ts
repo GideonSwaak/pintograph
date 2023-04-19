@@ -8,13 +8,13 @@ export class Oscillator implements SceneObject {
 
 	public mountPoint : MountPoint = { transformation: identity() }
 	public easingFunction : EasingFunction;
-
+	
 	private currentPosition : number = 0;
 	private localRotation : Matrix3 = identity();
 	private localTranslation : Matrix3 = identity();
 	private localTransformation : Matrix3 = identity();
 
-	constructor(private mountedAt : MountPoint, public length : number, public angle : number, public speed : number, easingFunction ?: EasingFunction) {
+	constructor(private mountedAt : MountPoint, public length : number, public angle : number, public speed : number, public strokeStyle : string  = "#888888", easingFunction ?: EasingFunction) {
 		if (!easingFunction) {
 			this.easingFunction = easingFunctions.sine;
 		} else {
@@ -43,7 +43,7 @@ export class Oscillator implements SceneObject {
 
 		context.moveTo(end1.x, end1.y);
 		context.lineTo(end2.x, end2.y);
-		context.strokeStyle = '#555555';
+		context.strokeStyle = this.strokeStyle;
 		context.stroke();
 
 		drawMountPoint(context, this.mountPoint.transformation);

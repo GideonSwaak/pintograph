@@ -9,11 +9,10 @@ export class Wheel implements SceneObject {
 	public readonly mountPoint: MountPoint;
 
 	private currentAngle: number;
-
 	private rotationMatrix: Matrix3;
 	private translationMatrix: Matrix3;
 
-	constructor(private mountedAt: MountPoint, public radius: number, public startAngle: number, public speed: number) {
+	constructor(private mountedAt: MountPoint, public radius: number, public startAngle: number, public speed: number, public strokeStyle : string  = "#888888") {
 		this.currentAngle = startAngle;
 		this.rotationMatrix = identity();
 		this.translationMatrix = identity();
@@ -36,7 +35,7 @@ export class Wheel implements SceneObject {
 		context.beginPath();
 
 		context.arc(center.x, center.y, this.radius, 0, Math.PI * 2);
-		context.strokeStyle = '#888888';
+		context.strokeStyle = this.strokeStyle;
 		context.stroke();
 
 		drawMountPoint(context, this.mountPoint.transformation);

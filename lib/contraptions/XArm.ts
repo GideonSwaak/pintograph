@@ -36,7 +36,7 @@ export class XArm implements SceneObject {
 	private mountPoint1Rotation : Matrix3 = identity();
 	private mountPoint2Rotation : Matrix3 = identity();
 
-	constructor(parameters : XArmParameters) {
+	constructor(parameters : XArmParameters, public strokeStyle : string  = "#888888") {
 		this.mountedAt1 = parameters.mountedAt1;
 		this.mountedAt2 = parameters.mountedAt2;
 		this.length1 = parameters.length1;
@@ -99,7 +99,7 @@ export class XArm implements SceneObject {
 		context.moveTo(this.mountedAt2WS.x, this.mountedAt2WS.y);
 		context.lineTo(mountPoint2WS.x, mountPoint2WS.y);
 		context.lineWidth = 3;
-		context.strokeStyle = 'pink';
+		context.strokeStyle = this.strokeStyle;
 		context.stroke();
 
 		context.lineWidth = 1;

@@ -15,7 +15,7 @@
   },
   "homepage": "https://github.com/michaldudak/pintograph#readme",
   "scripts": {
-    "watch": "webpack --watch -d",
+    "watch": "webpack --watch",
     "build": "webpack --mode=production"
   },
   "files": [
