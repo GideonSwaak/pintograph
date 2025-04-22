@@ -1,18 +1,26 @@
 {
-	"include": ["lib"],
 	"compilerOptions": {
-		"target": "ES2015",
-		"module": "ES6",
-		"moduleResolution": "node",
+		"target": "ES2022",
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"moduleDetection": "force",
+
+		"outDir": "./dist",
+		"sourceMap": true,
+		"lib": ["DOM", "ES2022"],
+
+		"declaration": true,
+		"declarationMap": true,
+		"declarationDir": "./dist",
+
+		"strict": true,
+		"useDefineForClassFields": true,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
-		"strict": true,
-		"lib": [
-			"DOM",
-			"ES2015"
-		],
-		"outDir": "./dist",
-		"declaration": true,
-		"declarationDir": "./dist"
-	}
+		"exactOptionalPropertyTypes": true,
+		"noUnusedLocals": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUncheckedSideEffectImports": true
+	},
+	"include": ["src"]
 }
