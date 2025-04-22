@@ -60,6 +60,8 @@ export class Scene {
 
 	private pens: Set<Pen> = new Set();
 
+	private debugContext: CanvasRenderingContext2D | undefined;
+
 	#isRunning = false;
 
 	/**
@@ -244,8 +246,59 @@ export class Scene {
 	}
 
 	#draw() {
+		// ensure debug overlay context exists and is cleared
+		if (!this.debugContext && this.pens.size) {
+			const anyPen = this.pens.values().next().value as any;
+			const baseCtx = anyPen?.renderingContext as CanvasRenderingContext2D | undefined;
+			if (baseCtx?.canvas && typeof document !== 'undefined') {
+				const overlay = document.createElement('canvas');
+				overlay.width = baseCtx.canvas.width;
+				overlay.height = baseCtx.canvas.height;
+				overlay.style.position = 'absolute';
+				overlay.style.left = baseCtx.canvas.offsetLeft + 'px';
+				overlay.style.top = baseCtx.canvas.offsetTop + 'px';
+				overlay.style.pointerEvents = 'none';
+				baseCtx.canvas.parentElement?.appendChild(overlay);
+				this.debugContext = overlay.getContext('2d')!;
+			}
+		}
+
+		if (this.debugContext) {
+			this.debugContext.save();
+			(this.debugContext as any).resetTransform?.();
+			this.debugContext.clearRect(0, 0, this.debugContext.canvas.width, this.debugContext.canvas.height);
+			this.debugContext.restore();
+		}
+
 		for (let pen of this.pens) {
 			pen.draw();
+
+			if (this.debugContext) {
+				this.#drawDebugRecursive(pen, this.debugContext, new Set());
+			}
+		}
+	}
+
+	#drawDebugRecursive(
+		object: SceneObject,
+		context: CanvasRenderingContext2D,
+		visited: Set<SceneObject>
+	) {
+		if (visited.has(object)) return;
+		visited.add(object);
+
+		// Skip if debug disabled on this object
+		if ((object as any).isDebugEnabled && !(object as any).isDebugEnabled()) {
+			// continue traversal but do not draw
+		} else if ((object as any).drawDebug) {
+			try {
+				(object as any).drawDebug(context);
+			} catch {}
+		}
+
+		const parents = object.getParentMountPoints();
+		for (let i = 0; i < parents.length; ++i) {
+			this.#drawDebugRecursive(parents[i].owner, context, visited);
 		}
 	}
 }

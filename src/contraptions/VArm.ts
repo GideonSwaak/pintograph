@@ -14,6 +14,7 @@ import {
 } from '../math/index.js';
 import { MountPoint } from './MountPoint.js';
 import { SceneObject } from './SceneObject.js';
+import { drawMountPoint } from './rendering/drawMountPoint.js';
 
 export interface VArmParameters {
 	mountedAt1: MountPoint;
@@ -40,6 +41,8 @@ export class VArm implements SceneObject {
 	private mountPointTranslation: Matrix3 = identity();
 	private mountPointRotation: Matrix3 = identity();
 
+	private debugEnabled = true;
+
 	constructor(parameters: VArmParameters) {
 		this.mountedAt1 = parameters.mountedAt1;
 		this.mountedAt2 = parameters.mountedAt2;
@@ -47,6 +50,9 @@ export class VArm implements SceneObject {
 		this.length2 = parameters.length2;
 		this.flip = parameters.flip;
 	}
+
+	setDebugEnabled(enabled: boolean) { this.debugEnabled = enabled; }
+	isDebugEnabled() { return this.debugEnabled; }
 
 	step() {
 		transform(
@@ -96,5 +102,23 @@ export class VArm implements SceneObject {
 			this.mountPointTranslation,
 			this.mountPointRotation
 		);
+	}
+
+	drawDebug(context: CanvasRenderingContext2D) {
+		if (!this.isDebugEnabled()) return;
+
+		let mountPointWS = { x: 0, y: 0 };
+		transform(mountPointWS, { x: 0, y: 0 }, this.mountPoint.transformation);
+
+		context.beginPath();
+		context.moveTo(this.mountedAt1WS.x, this.mountedAt1WS.y);
+		context.lineTo(mountPointWS.x, mountPointWS.y);
+		context.lineTo(this.mountedAt2WS.x, this.mountedAt2WS.y);
+		context.lineWidth = 3;
+		context.strokeStyle = 'lime';
+		context.stroke();
+
+		context.lineWidth = 1;
+		drawMountPoint(context, this.mountPoint.transformation);
 	}
 }

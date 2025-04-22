@@ -1,11 +1,13 @@
 import { MountPoint } from './MountPoint.js';
 import { SceneObject } from './SceneObject.js';
+import { drawMountPoint } from './rendering/drawMountPoint.js';
 import {
 	Matrix3,
 	identity,
 	fromRotation,
 	fromTranslation,
 	multiply,
+	transform,
 } from '../math/Matrices.js';
 
 const EMPTY_ARRAY: MountPoint[] = [];
@@ -15,6 +17,7 @@ export class Wheel implements SceneObject {
 	public readonly mountPoint: MountPoint;
 	public getParentMountPoints = () =>
 		this.mountedAt ? [this.mountedAt] : EMPTY_ARRAY;
+	private debugEnabled = true;
 
 	private currentAngle: number;
 
@@ -43,6 +46,23 @@ export class Wheel implements SceneObject {
 
 		this.#update();
 	}
+
+	drawDebug(context: CanvasRenderingContext2D) {
+		if (!this.isDebugEnabled()) return;
+		let center = { x: 0, y: 0 };
+		transform(center, center, this.mountedAt.transformation);
+
+		context.beginPath();
+
+		context.arc(center.x, center.y, this.radius, 0, Math.PI * 2);
+		context.strokeStyle = '#888888';
+		context.stroke();
+
+		drawMountPoint(context, this.mountPoint.transformation);
+	}
+
+	setDebugEnabled(enabled: boolean) { this.debugEnabled = enabled; }
+	isDebugEnabled() { return this.debugEnabled; }
 
 	#update() {
 		fromRotation(this.rotationMatrix, this.currentAngle);

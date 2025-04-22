@@ -1,5 +1,6 @@
 import { MountPoint, SceneObject, Pen } from './index.js';
 import { transform, Vector2 } from '../math/index.js';
+import { drawMountPoint } from './rendering/drawMountPoint.js';
 
 interface DrawBufferItem extends Vector2 {
 	color: string;
@@ -19,6 +20,7 @@ export class StandardPen implements SceneObject, Pen {
 
 	private worldPosition: Vector2 = { x: 0, y: 0 };
 	private drawBuffer: DrawBufferItem[] = [];
+	private debugEnabled = true;
 
 	constructor(
 		private mountedAt: MountPoint,
@@ -42,6 +44,21 @@ export class StandardPen implements SceneObject, Pen {
 			...this.worldPosition,
 			color: this.color(elapsedTime),
 		});
+	}
+
+	drawDebug(context: CanvasRenderingContext2D) {
+		if (!this.debugEnabled) return;
+		// Draw mount point crosshair and small circle for current pen position
+		// Mount point marker
+		drawMountPoint(context, this.mountedAt.transformation);
+
+		// Draw current pen world position as a small circle
+		const pos: Vector2 = { x: 0, y: 0 };
+		transform(pos, pos, this.mountedAt.transformation);
+		context.beginPath();
+		context.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+		context.fillStyle = '#ff0000';
+		context.fill();
 	}
 
 	draw() {
@@ -79,5 +96,10 @@ export class StandardPen implements SceneObject, Pen {
 
 			this.drawBuffer = [this.drawBuffer[this.drawBuffer.length - 1]];
 		}
+
+		// Rendering of debug overlay handled by Scene
 	}
+
+	setDebugEnabled(enabled: boolean) { this.debugEnabled = enabled; }
+	isDebugEnabled() { return this.debugEnabled; }
 }
