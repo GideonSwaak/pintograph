@@ -74,6 +74,7 @@ export class WebGLRenderer implements Renderer {
 
 	private debugRenderer: WebGLDebugRenderer;
 	private trailsDirty: boolean = false;
+	private debugEnabled: boolean = true;
 
 	private backgroundColor: [number, number, number, number] = [0, 0, 0, 0];
 
@@ -181,6 +182,11 @@ export class WebGLRenderer implements Renderer {
 
 	beginFrame(): void {
 		this.overlayCount = 0;
+		// Clear the framebuffer each frame. Pen trails are persistent in their
+		// VBOs and re-issued in endFrame() (one drawArrays(LINE_STRIP) per pen),
+		// so the additive look survives the clear; the debug overlay then
+		// renders on top freshly without ghosting from previous frames.
+		this.clearCanvas();
 	}
 
 	endFrame(): void {
@@ -228,6 +234,19 @@ export class WebGLRenderer implements Renderer {
 		gl.bindVertexArray(null);
 	}
 
+	/**
+	 * Toggle the debug overlay (wheels, arms, mount points) without touching
+	 * pen trails. When disabled, overlay primitive calls are dropped so the
+	 * canvas only shows the additive trail buffer.
+	 */
+	setDebugEnabled(enabled: boolean): void {
+		this.debugEnabled = enabled;
+	}
+
+	isDebugEnabled(): boolean {
+		return this.debugEnabled;
+	}
+
 	pushOverlayLine(
 		x1: number,
 		y1: number,
@@ -235,6 +254,7 @@ export class WebGLRenderer implements Renderer {
 		y2: number,
 		color: string
 	): void {
+		if (!this.debugEnabled) return;
 		this.ensureOverlayCapacity(2);
 		const [r, g, b] = parseColor(color);
 		let off = this.overlayCount * FLOATS_PER_VERTEX;
@@ -260,6 +280,7 @@ export class WebGLRenderer implements Renderer {
 		color: string,
 		segments: number = 48
 	): void {
+		if (!this.debugEnabled) return;
 		this.ensureOverlayCapacity(segments * 2);
 		const [r, g, b] = parseColor(color);
 		const h = this.overlayHost;
@@ -295,6 +316,7 @@ export class WebGLRenderer implements Renderer {
 		color: string,
 		segments: number = 24
 	): void {
+		if (!this.debugEnabled) return;
 		// Approximate a filled disc with a star of overlapping line segments
 		// from the centre outward. Uses the same overlay buffer as outlines so
 		// it's still one draw call. Acceptable visual since the only filled
