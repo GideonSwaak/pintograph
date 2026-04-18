@@ -139,23 +139,34 @@ export class Scene {
 		| { ok: false; error: PintographError; atTime: number } {
 		const wasRunning = this.#isRunning;
 		this.#isRunning = false;
-		this.reset(0);
 
-		const numberOfSteps = Math.ceil(
-			(endTime * this.stepsPerFrame) / this.frameTime
-		);
-		const stepDelta = this.frameTime / this.stepsPerFrame;
-
+		// Critical: enable rethrow BEFORE reset(0). reset() internally calls
+		// #updateObjects(0); if the configuration is already broken at t=0 the
+		// error would otherwise hit the regular swallowing path and fire
+		// scene.onError, surfacing a misleading "Render stopped" panel during
+		// what should be a silent pre-check.
 		this.#rethrowErrors = true;
 		try {
+			try {
+				this.reset(0);
+			} catch (e) {
+				if (e instanceof PintographError) {
+					return { ok: false, error: e, atTime: 0 };
+				}
+				throw e;
+			}
+
+			const numberOfSteps = Math.ceil(
+				(endTime * this.stepsPerFrame) / this.frameTime
+			);
+			const stepDelta = this.frameTime / this.stepsPerFrame;
+
 			for (let i = 0; i < numberOfSteps; ++i) {
 				try {
 					this.#updateObjects(this.simulationTime);
 				} catch (e) {
 					if (e instanceof PintographError) {
-						const atTime = this.simulationTime;
-						this.reset(0);
-						return { ok: false, error: e, atTime };
+						return { ok: false, error: e, atTime: this.simulationTime };
 					}
 					throw e;
 				}
@@ -164,10 +175,14 @@ export class Scene {
 		} finally {
 			this.#rethrowErrors = false;
 			this.#isRunning = wasRunning;
+			// Wind back to t=0 so a follow-up run() starts clean. The reset's
+			// internal step may itself throw on a broken graph; ignore it
+			// because the caller has already been informed via the return
+			// value and the live render path will surface it again later.
+			try { this.reset(0); } catch { /* swallow */ }
 		}
 
 		const finalTime = this.simulationTime;
-		this.reset(0);
 		return { ok: true, simulatedTime: finalTime };
 	}
 
