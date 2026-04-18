@@ -31,7 +31,8 @@ export class Oscillator implements SceneObject {
 		public angle: number,
 		public speed: number,
 		public strokeStyle: string = '#555555',
-		easingFunction?: EasingFunction
+		easingFunction?: EasingFunction,
+		public id?: string
 	) {
 		if (!easingFunction) {
 			this.easingFunction = easingFunctions.sine;

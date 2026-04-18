@@ -31,7 +31,7 @@ export class StaticMountPoint implements SceneObject, MountPoint {
 		fromTranslation(this.transformation, this.#x, value);
 	}
 
-	constructor(position: Vector2) {
+	constructor(position: Vector2, public id?: string) {
 		this.#x = position.x;
 		this.#y = position.y;
 		this.transformation = fromTranslation(position.x, position.y);

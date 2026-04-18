@@ -25,7 +25,8 @@ export class StandardPen implements SceneObject, Pen {
 	constructor(
 		private mountedAt: MountPoint,
 		private renderingContext: CanvasRenderingContext2D,
-		color: string | ((elapsedTime: number) => string)
+		color: string | ((elapsedTime: number) => string),
+		public id?: string
 	) {
 		if (typeof color === 'string') {
 			this.color = () => color;

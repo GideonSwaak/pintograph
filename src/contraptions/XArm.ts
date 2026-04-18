@@ -1,6 +1,7 @@
 import { SceneObject } from './SceneObject.js';
 import { MountPoint } from './MountPoint.js';
 import { DebugRenderer } from '../rendering/DebugRenderer.js';
+import { PintographError } from '../errors.js';
 import {
 	Vector2,
 	distance,
@@ -57,7 +58,11 @@ export class XArm implements SceneObject {
 	setDebugEnabled(enabled: boolean) { this.debugEnabled = enabled; }
 	isDebugEnabled() { return this.debugEnabled; }
 
-	constructor(parameters: XArmParameters, public strokeStyle: string = 'pink') {
+	constructor(
+		parameters: XArmParameters,
+		public strokeStyle: string = 'pink',
+		public id?: string
+	) {
 		this.mountedAt1 = parameters.mountedAt1;
 		this.mountedAt2 = parameters.mountedAt2;
 		this.length1 = parameters.length1;
@@ -81,11 +86,26 @@ export class XArm implements SceneObject {
 
 		let d = distance(this.mountedAt1WS, this.mountedAt2WS);
 		if (d < EPSILON) {
-			throw new Error('Mount points are placed too close to each other.');
+			throw new PintographError(
+				'MountPointOverlap',
+				'Mount points are placed too close to each other.',
+				{ contraptionId: this.id, contraptionType: 'XArm', distance: d }
+			);
 		}
 
 		if (d > this.length1 + this.length2) {
-			throw new Error('Arms are too short.');
+			throw new PintographError(
+				'ArmsTooShort',
+				`XArm arms cannot reach: distance ${d.toFixed(1)} exceeds combined length ${(this.length1 + this.length2).toFixed(1)}.`,
+				{
+					contraptionId: this.id,
+					contraptionType: 'XArm',
+					distance: d,
+					maxLength: this.length1 + this.length2,
+					length1: this.length1,
+					length2: this.length2,
+				}
+			);
 		}
 
 		let possibleIntersectionPoints = circleCircleIntersection(

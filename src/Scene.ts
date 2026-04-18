@@ -68,6 +68,7 @@ export class Scene {
 	private fallbackDebugRenderer: DebugRenderer | undefined;
 
 	#isRunning = false;
+	#rethrowErrors = false;
 
 	/**
 	 * The timestamp of the previous step in seconds.
@@ -118,6 +119,56 @@ export class Scene {
 
 		this.#draw();
 		this.#isRunning = false;
+	}
+
+	/**
+	 * Run the simulation forward by `endTime` seconds without drawing anything,
+	 * catching any PintographError that gets thrown along the way. Used by
+	 * end-user mode to validate a configuration before committing to a full
+	 * render. After the run, the scene is reset back to time 0 so a normal
+	 * run() afterwards starts from a clean slate.
+	 *
+	 * @returns
+	 *   { ok: true, simulatedTime } if the full range completed without error,
+	 *   { ok: false, error, atTime } on the first error encountered.
+	 */
+	dryRun(
+		endTime: number
+	):
+		| { ok: true; simulatedTime: number }
+		| { ok: false; error: PintographError; atTime: number } {
+		const wasRunning = this.#isRunning;
+		this.#isRunning = false;
+		this.reset(0);
+
+		const numberOfSteps = Math.ceil(
+			(endTime * this.stepsPerFrame) / this.frameTime
+		);
+		const stepDelta = this.frameTime / this.stepsPerFrame;
+
+		this.#rethrowErrors = true;
+		try {
+			for (let i = 0; i < numberOfSteps; ++i) {
+				try {
+					this.#updateObjects(this.simulationTime);
+				} catch (e) {
+					if (e instanceof PintographError) {
+						const atTime = this.simulationTime;
+						this.reset(0);
+						return { ok: false, error: e, atTime };
+					}
+					throw e;
+				}
+				this.simulationTime += stepDelta;
+			}
+		} finally {
+			this.#rethrowErrors = false;
+			this.#isRunning = wasRunning;
+		}
+
+		const finalTime = this.simulationTime;
+		this.reset(0);
+		return { ok: true, simulatedTime: finalTime };
 	}
 
 	/**
@@ -226,12 +277,20 @@ export class Scene {
 			try {
 				this.#updateObjectsInternal(elapsedTime, timeStep, pen, updatedObjects);
 			} catch (e) {
+				// In dry-run mode, propagate so dryRun() can capture and report.
+				if (this.#rethrowErrors) {
+					throw e;
+				}
+
+				let behavior: ErrorHandlingBehavior = ErrorHandlingBehavior.Stop;
 				if (e instanceof PintographError && this.onError) {
-					const behavior = this.onError(e.code, undefined);
-					if (behavior === ErrorHandlingBehavior.Continue) {
-						console.warn('The device is stuck.', e);
-						pen.reset();
-					}
+					behavior = this.onError(e.code, e.data);
+				}
+
+				if (behavior === ErrorHandlingBehavior.Continue) {
+					console.warn('The device is stuck.', e);
+					pen.reset();
+					continue;
 				}
 
 				console.error('The device is stuck.', e);

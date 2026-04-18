@@ -29,7 +29,8 @@ export class Wheel implements SceneObject {
 		public radius: number,
 		public startAngle: number,
 		public speed: number,
-		public strokeStyle: string = '#888888'
+		public strokeStyle: string = '#888888',
+		public id?: string
 	) {
 		this.currentAngle = startAngle;
 		this.rotationMatrix = identity();

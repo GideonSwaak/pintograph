@@ -30,7 +30,8 @@ export class WebGLPen implements SceneObject, Pen {
 		private mountedAt: MountPoint,
 		private renderer: WebGLRenderer,
 		color: string | ((elapsedTime: number) => string),
-		public lineWidth: number = 1
+		public lineWidth: number = 1,
+		public id?: string
 	) {
 		if (typeof color === 'string') {
 			const fixed = color;
