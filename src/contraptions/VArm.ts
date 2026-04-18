@@ -14,7 +14,7 @@ import {
 } from '../math/index.js';
 import { MountPoint } from './MountPoint.js';
 import { SceneObject } from './SceneObject.js';
-import { drawMountPoint } from './rendering/drawMountPoint.js';
+import { DebugRenderer } from '../rendering/DebugRenderer.js';
 
 export interface VArmParameters {
 	mountedAt1: MountPoint;
@@ -104,21 +104,29 @@ export class VArm implements SceneObject {
 		);
 	}
 
-	drawDebug(context: CanvasRenderingContext2D) {
+	drawDebug(r: DebugRenderer) {
 		if (!this.isDebugEnabled()) return;
 
 		let mountPointWS = { x: 0, y: 0 };
 		transform(mountPointWS, { x: 0, y: 0 }, this.mountPoint.transformation);
 
-		context.beginPath();
-		context.moveTo(this.mountedAt1WS.x, this.mountedAt1WS.y);
-		context.lineTo(mountPointWS.x, mountPointWS.y);
-		context.lineTo(this.mountedAt2WS.x, this.mountedAt2WS.y);
-		context.lineWidth = 3;
-		context.strokeStyle = this.strokeStyle;
-		context.stroke();
+		r.drawLine(
+			this.mountedAt1WS.x,
+			this.mountedAt1WS.y,
+			mountPointWS.x,
+			mountPointWS.y,
+			this.strokeStyle,
+			3
+		);
+		r.drawLine(
+			mountPointWS.x,
+			mountPointWS.y,
+			this.mountedAt2WS.x,
+			this.mountedAt2WS.y,
+			this.strokeStyle,
+			3
+		);
 
-		context.lineWidth = 1;
-		drawMountPoint(context, this.mountPoint.transformation);
+		r.drawMountPoint(this.mountPoint.transformation);
 	}
 }

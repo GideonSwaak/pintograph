@@ -1,6 +1,6 @@
 import { MountPoint } from './MountPoint.js';
 import { SceneObject } from './SceneObject.js';
-import { drawMountPoint } from './rendering/drawMountPoint.js';
+import { DebugRenderer } from '../rendering/DebugRenderer.js';
 import {
 	Matrix3,
 	identity,
@@ -48,18 +48,12 @@ export class Wheel implements SceneObject {
 		this.#update();
 	}
 
-	drawDebug(context: CanvasRenderingContext2D) {
+	drawDebug(r: DebugRenderer) {
 		if (!this.isDebugEnabled()) return;
 		let center = { x: 0, y: 0 };
 		transform(center, center, this.mountedAt.transformation);
-
-		context.beginPath();
-
-		context.arc(center.x, center.y, this.radius, 0, Math.PI * 2);
-		context.strokeStyle = this.strokeStyle;
-		context.stroke();
-
-		drawMountPoint(context, this.mountPoint.transformation);
+		r.drawCircle(center.x, center.y, this.radius, this.strokeStyle);
+		r.drawMountPoint(this.mountPoint.transformation);
 	}
 
 	setDebugEnabled(enabled: boolean) { this.debugEnabled = enabled; }

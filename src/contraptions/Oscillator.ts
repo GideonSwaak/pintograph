@@ -1,6 +1,6 @@
 import { MountPoint } from './MountPoint.js';
 import { SceneObject } from './SceneObject.js';
-import { drawMountPoint } from './rendering/drawMountPoint.js';
+import { DebugRenderer } from '../rendering/DebugRenderer.js';
 import {
 	Matrix3,
 	identity,
@@ -58,7 +58,7 @@ export class Oscillator implements SceneObject {
 		);
 	}
 
-	drawDebug(context: CanvasRenderingContext2D) {
+	drawDebug(r: DebugRenderer) {
 		if (!this.debugEnabled) return;
 		let end1 = { x: -this.length / 2 - this.currentPosition, y: 0 };
 		let end2 = { x: this.length / 2 - this.currentPosition, y: 0 };
@@ -66,14 +66,8 @@ export class Oscillator implements SceneObject {
 		transform(end1, end1, this.mountPoint.transformation);
 		transform(end2, end2, this.mountPoint.transformation);
 
-		context.beginPath();
-
-		context.moveTo(end1.x, end1.y);
-		context.lineTo(end2.x, end2.y);
-		context.strokeStyle = this.strokeStyle;
-		context.stroke();
-
-		drawMountPoint(context, this.mountPoint.transformation);
+		r.drawLine(end1.x, end1.y, end2.x, end2.y, this.strokeStyle, 1);
+		r.drawMountPoint(this.mountPoint.transformation);
 	}
 
 	setDebugEnabled(enabled: boolean) { this.debugEnabled = enabled; }

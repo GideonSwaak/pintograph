@@ -1,4 +1,7 @@
 import { Pen, SceneObject } from './contraptions/index.js';
+import { Renderer } from './rendering/Renderer.js';
+import { Canvas2DDebugRenderer } from './rendering/Canvas2DDebugRenderer.js';
+import { DebugRenderer } from './rendering/DebugRenderer.js';
 import {
 	ErrorHandlingBehavior,
 	OnErrorCallback,
@@ -61,6 +64,8 @@ export class Scene {
 	private pens: Set<Pen> = new Set();
 
 	private debugContext: CanvasRenderingContext2D | undefined;
+	private renderer: Renderer | undefined;
+	private fallbackDebugRenderer: DebugRenderer | undefined;
 
 	#isRunning = false;
 
@@ -156,6 +161,7 @@ export class Scene {
 		this.#previousStepTimestamp = targetTime;
 		for (let pen of this.pens) {
 			pen.reset();
+			this.renderer?.onPenReset?.(pen);
 		}
 
 		this.#updateObjects(targetTime);
@@ -166,6 +172,7 @@ export class Scene {
 	 */
 	registerPen(pen: Pen) {
 		this.pens.add(pen);
+		this.renderer?.onPenRegistered?.(pen);
 	}
 
 	/**
@@ -173,6 +180,18 @@ export class Scene {
 	 */
 	unregisterPen(pen: Pen) {
 		this.pens.delete(pen);
+	}
+
+	/**
+	 * Configure a pluggable renderer (e.g. WebGLRenderer). When set, all
+	 * frame drawing and debug overlay rendering goes through this renderer
+	 * instead of the implicit 2D canvas overlay.
+	 */
+	setRenderer(renderer: Renderer) {
+		this.renderer = renderer;
+		for (const pen of this.pens) {
+			renderer.onPenRegistered?.(pen);
+		}
 	}
 
 	/**
@@ -246,7 +265,20 @@ export class Scene {
 	}
 
 	#draw() {
-		// ensure debug overlay context exists and is cleared
+		if (this.renderer) {
+			this.renderer.beginFrame();
+			const debugRenderer = this.renderer.getDebugRenderer();
+			for (let pen of this.pens) {
+				pen.draw();
+				this.#drawDebugRecursive(pen, debugRenderer, new Set());
+			}
+			this.renderer.endFrame();
+			return;
+		}
+
+		// Fallback path: auto-create a 2D overlay canvas above the first pen's
+		// rendering context. Preserves the legacy behavior used by the upstream
+		// demo site and any consumer that hasn't called setRenderer().
 		if (!this.debugContext && this.pens.size) {
 			const anyPen = this.pens.values().next().value as any;
 			const baseCtx = anyPen?.renderingContext as CanvasRenderingContext2D | undefined;
@@ -260,6 +292,7 @@ export class Scene {
 				overlay.style.pointerEvents = 'none';
 				baseCtx.canvas.parentElement?.appendChild(overlay);
 				this.debugContext = overlay.getContext('2d')!;
+				this.fallbackDebugRenderer = new Canvas2DDebugRenderer(this.debugContext);
 			}
 		}
 
@@ -273,15 +306,15 @@ export class Scene {
 		for (let pen of this.pens) {
 			pen.draw();
 
-			if (this.debugContext) {
-				this.#drawDebugRecursive(pen, this.debugContext, new Set());
+			if (this.fallbackDebugRenderer) {
+				this.#drawDebugRecursive(pen, this.fallbackDebugRenderer, new Set());
 			}
 		}
 	}
 
 	#drawDebugRecursive(
 		object: SceneObject,
-		context: CanvasRenderingContext2D,
+		debugRenderer: DebugRenderer,
 		visited: Set<SceneObject>
 	) {
 		if (visited.has(object)) return;
@@ -292,13 +325,13 @@ export class Scene {
 			// continue traversal but do not draw
 		} else if ((object as any).drawDebug) {
 			try {
-				(object as any).drawDebug(context);
+				(object as any).drawDebug(debugRenderer);
 			} catch {}
 		}
 
 		const parents = object.getParentMountPoints();
 		for (let i = 0; i < parents.length; ++i) {
-			this.#drawDebugRecursive(parents[i].owner, context, visited);
+			this.#drawDebugRecursive(parents[i].owner, debugRenderer, visited);
 		}
 	}
 }

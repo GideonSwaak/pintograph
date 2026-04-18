@@ -1,6 +1,6 @@
 import { MountPoint, SceneObject, Pen } from './index.js';
 import { transform, Vector2 } from '../math/index.js';
-import { drawMountPoint } from './rendering/drawMountPoint.js';
+import { DebugRenderer } from '../rendering/DebugRenderer.js';
 
 interface DrawBufferItem extends Vector2 {
 	color: string;
@@ -46,19 +46,12 @@ export class StandardPen implements SceneObject, Pen {
 		});
 	}
 
-	drawDebug(context: CanvasRenderingContext2D) {
+	drawDebug(r: DebugRenderer) {
 		if (!this.debugEnabled) return;
-		// Draw mount point crosshair and small circle for current pen position
-		// Mount point marker
-		drawMountPoint(context, this.mountedAt.transformation);
-
-		// Draw current pen world position as a small circle
+		r.drawMountPoint(this.mountedAt.transformation);
 		const pos: Vector2 = { x: 0, y: 0 };
 		transform(pos, pos, this.mountedAt.transformation);
-		context.beginPath();
-		context.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
-		context.fillStyle = '#ff0000';
-		context.fill();
+		r.fillCircle(pos.x, pos.y, 3, '#ff0000');
 	}
 
 	draw() {
