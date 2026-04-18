@@ -43,7 +43,7 @@ export class VArm implements SceneObject {
 
 	private debugEnabled = true;
 
-	constructor(parameters: VArmParameters) {
+	constructor(parameters: VArmParameters, public strokeStyle: string = 'lime') {
 		this.mountedAt1 = parameters.mountedAt1;
 		this.mountedAt2 = parameters.mountedAt2;
 		this.length1 = parameters.length1;
@@ -115,7 +115,7 @@ export class VArm implements SceneObject {
 		context.lineTo(mountPointWS.x, mountPointWS.y);
 		context.lineTo(this.mountedAt2WS.x, this.mountedAt2WS.y);
 		context.lineWidth = 3;
-		context.strokeStyle = 'lime';
+		context.strokeStyle = this.strokeStyle;
 		context.stroke();
 
 		context.lineWidth = 1;

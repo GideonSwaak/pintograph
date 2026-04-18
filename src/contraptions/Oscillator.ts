@@ -30,6 +30,7 @@ export class Oscillator implements SceneObject {
 		public length: number,
 		public angle: number,
 		public speed: number,
+		public strokeStyle: string = '#555555',
 		easingFunction?: EasingFunction
 	) {
 		if (!easingFunction) {
@@ -69,7 +70,7 @@ export class Oscillator implements SceneObject {
 
 		context.moveTo(end1.x, end1.y);
 		context.lineTo(end2.x, end2.y);
-		context.strokeStyle = '#555555';
+		context.strokeStyle = this.strokeStyle;
 		context.stroke();
 
 		drawMountPoint(context, this.mountPoint.transformation);
