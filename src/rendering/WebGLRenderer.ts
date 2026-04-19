@@ -14,9 +14,16 @@ const TRAIL_VS = `#version 300 es
 in vec2 a_position;
 in vec3 a_color;
 uniform vec2 u_resolution;
+uniform vec2 u_viewScale;
+uniform vec2 u_viewTranslate;
 out vec3 v_color;
 void main() {
-    vec2 clip = (a_position / u_resolution) * 2.0 - 1.0;
+    // Apply world-space viewport transform (pan/zoom) before mapping to clip
+    // space. The trail VBO stays in raw world coordinates; only the projection
+    // is touched, so zooming costs zero extra work per simulation step and
+    // every existing trail vertex re-projects at full GPU precision.
+    vec2 view = a_position * u_viewScale + u_viewTranslate;
+    vec2 clip = (view / u_resolution) * 2.0 - 1.0;
     clip.y = -clip.y;
     gl_Position = vec4(clip, 0.0, 1.0);
     v_color = a_color;
@@ -61,6 +68,8 @@ export class WebGLRenderer implements Renderer {
 	private gl: WebGL2RenderingContext;
 	private program: WebGLProgram;
 	private uResolution: WebGLUniformLocation;
+	private uViewScale: WebGLUniformLocation;
+	private uViewTranslate: WebGLUniformLocation;
 	private aPosition: number;
 	private aColor: number;
 
@@ -78,12 +87,27 @@ export class WebGLRenderer implements Renderer {
 
 	private backgroundColor: [number, number, number, number] = [0, 0, 0, 0];
 
+	// World-space viewport transform applied in the vertex shader. Default is
+	// the identity (scale 1, no translate), so existing call sites keep their
+	// 1:1 world<->canvas mapping. setView() updates these and triggers a
+	// redraw on the next endFrame().
+	private viewScaleX: number = 1;
+	private viewScaleY: number = 1;
+	private viewTranslateX: number = 0;
+	private viewTranslateY: number = 0;
+
 	constructor(gl: WebGL2RenderingContext) {
 		this.gl = gl;
 		this.program = compileProgram(gl, TRAIL_VS, TRAIL_FS);
 		const uRes = gl.getUniformLocation(this.program, 'u_resolution');
 		if (!uRes) throw new Error('WebGLRenderer: missing u_resolution uniform');
 		this.uResolution = uRes;
+		const uVS = gl.getUniformLocation(this.program, 'u_viewScale');
+		if (!uVS) throw new Error('WebGLRenderer: missing u_viewScale uniform');
+		this.uViewScale = uVS;
+		const uVT = gl.getUniformLocation(this.program, 'u_viewTranslate');
+		if (!uVT) throw new Error('WebGLRenderer: missing u_viewTranslate uniform');
+		this.uViewTranslate = uVT;
 		this.aPosition = gl.getAttribLocation(this.program, 'a_position');
 		this.aColor = gl.getAttribLocation(this.program, 'a_color');
 
@@ -197,6 +221,8 @@ export class WebGLRenderer implements Renderer {
 			(gl.canvas as HTMLCanvasElement).width,
 			(gl.canvas as HTMLCanvasElement).height
 		);
+		gl.uniform2f(this.uViewScale, this.viewScaleX, this.viewScaleY);
+		gl.uniform2f(this.uViewTranslate, this.viewTranslateX, this.viewTranslateY);
 
 		if (this.trailsDirty) {
 			for (const b of this.pens.values()) {
@@ -350,6 +376,33 @@ export class WebGLRenderer implements Renderer {
 		this.backgroundColor = [r, g, b, a];
 		this.clearCanvas();
 		this.trailsDirty = true;
+	}
+
+	/**
+	 * Configure the world-space viewport transform. Applied in the vertex
+	 * shader as `position * scale + translate` (in canvas pixels) before
+	 * mapping to clip space, so changing this is essentially free per frame
+	 * and the existing trail data re-projects at full GPU precision.
+	 *
+	 * @param scaleX  horizontal scale (1 = original; 2 = 2x zoom)
+	 * @param scaleY  vertical scale (typically equal to scaleX)
+	 * @param tx      horizontal translation in canvas pixels
+	 * @param ty      vertical translation in canvas pixels
+	 */
+	setView(scaleX: number, scaleY: number, tx: number, ty: number): void {
+		this.viewScaleX = scaleX;
+		this.viewScaleY = scaleY;
+		this.viewTranslateX = tx;
+		this.viewTranslateY = ty;
+	}
+
+	getView(): { scaleX: number; scaleY: number; tx: number; ty: number } {
+		return {
+			scaleX: this.viewScaleX,
+			scaleY: this.viewScaleY,
+			tx: this.viewTranslateX,
+			ty: this.viewTranslateY,
+		};
 	}
 
 	private clearCanvas(): void {

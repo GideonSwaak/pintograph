@@ -1,6 +1,6 @@
 {
   "name": "pintograph",
-  "version": "0.4.1-webgl.3",
+  "version": "0.4.1-webgl.4",
   "description": "Pintograph simulator",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
